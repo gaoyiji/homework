@@ -5,6 +5,13 @@ date: "4/6/2022"
 output: md_document
 ---
 
+AUTHOR:
+Jyun-Yu Cheng
+
+Yiji Gao
+
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
