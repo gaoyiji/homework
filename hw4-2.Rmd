@@ -60,7 +60,9 @@ ggplot(social_market1) +
   geom_point(aes(photo_sharing, politics, color=factor(clust1$cluster)))
 
 ```
-##Part 4 Groups
+
+
+## Part 4 Groups
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
@@ -75,7 +77,7 @@ which(clust1$cluster == 5)
 All data, followers of Twitter account of a large consumer drinks brand, are divided into 5 categories. The number in the category from most to least is category 4, 2, 3, 1, 5, and the number of category 4 is much more than others. Separately, in group 1, people are more interested in travel, politics and news. In group2, people show more passion on health nutrition, personal fitness. In group3, individual are more concerned about sports fandom, food, family, health nutrition and religion. For members of group 4, photo sharing is the most frequent object they mention while the whole number of twitter is not very high. In group 5, photo sharing, shopping, cooking, beauty and fashion have high frequency. 
 
 
-##Part 5 Report
+## Part 5 Report
 
 
 To appeal to group1, the brand can combine the product with the trending
