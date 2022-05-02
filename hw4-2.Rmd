@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 # Question 2
-## Part 1 import the data
+## Part 1 Import the data
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 library(mvtnorm)
@@ -27,7 +27,7 @@ social_market = read.csv('https://raw.githubusercontent.com/jgscott/ECO395M/mast
 
 
 
-## Part 2 wrangle the data
+## Part 2 Wrangle the data
 
 In the part, chatter and uncategorized column are deleted because they are meaningless to this research. At the same time, spam is limited to be equal to 0 and adult is limited to be smaller than 10 so that some kind of "bots" are excluded. As a result, the data is most useful.
 
@@ -40,7 +40,7 @@ data=social_market1 %>%
   filter(spam==0& adult<10)
 ```
 
-## Part 3 cluster
+## Part 3 Cluster
 
 In this part, all people are divided into 5 groups using K-means method. Photo_sharing, politics, business and crafts are chosen to make the graph, having a rough understanding of the respondents.
 
