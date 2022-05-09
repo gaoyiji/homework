@@ -1,0 +1,469 @@
+---
+title: "Project"
+author: "JyunYu Cheng; Yiji Gao"
+date: "5/8/2022"
+output:
+  pdf_document: default
+  md_document: default
+---
+
+# Abstract
+
+In this project, we focus on the question of how to classify countries. We use the methods of model selection, PCA and cluster. Bagging model is the best model to make prediction under this circumstance. Through PCA and cluster, all countries are divided into 4 categories. They are very similar to the classification in the real world.  So, our conclusion is that our variables are chosen meaningfully.
+
+
+# Introduction
+
+At reality, countries are divided into several categories, including developed countries, countries to be consider developed and developing countries. Different institutions make use of different standards to make the judgement. For example, UNDP adopt the data of “human development” index while the World Bank focus on the income. Different standard may cause confusion. As a result, we collect the data from all the countries (few of them are excluded due to the missing of data) in 2018, including all aspects of a citizen life. Ranging from macroeconomics to microeconomics, GDP index, food and education are all considered.
+
+In conclusion, we will compare between the 2018 data and the categories in the reality. We will focus on the difference and analyze them. 
+
+
+# Methods
+
+At first, we get the data from the UN websites. There are 14 parameters describing each country. Almost every country is included, except for some that lacks too many data. 
+
+Secondly, we use some basic data verbs like summarize, mutate, select to wrangle the data. During the process, we can achieve many basic understandings of the data. For example, mean and standard deviation contributes to the rough situation in general. 
+
+Furthermore, we take advantage of different models to make perdition.
+
+Finally, PCA and cluster are put into practice. We use the collected data to divide all countries into 4 categories. Comparison are made between various times using our index and the reality. Maps are made to make it more precisely. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(mvtnorm)
+library(ggplot2)
+library(LICORS)
+library(foreach)
+library(mosaic)
+library(tidyverse)
+library(treemapify)
+
+
+data = read.csv('https://raw.githubusercontent.com/JyunYuCheng/Data_Mining_Final/main/2018_data%20copy.csv')
+
+```
+
+# Part 1 Wrangle the data and create a treemap with labels
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+data %>%
+  summarize(avg_gdp = mean(GDP),
+            sd_gdp = sd(GDP),
+            q05_gdp = quantile(GDP, 0.05),
+            q95_gdp = quantile(GDP, 0.95)) %>%
+  round(1)
+
+ggplot(data) + 
+  geom_boxplot(aes(x=factor(category), y=GDP))
+
+ggplot(data, aes(area = GDP, fill=GDP, label = Country_Name)) +
+  geom_treemap() + 
+  geom_treemap_text(colour = "white", place = "centre")+ 
+  theme(legend.position="none")
+
+```
+
+
+During the process in this part, we discover that the standard deviation of GDP is very high, which means that GDP is very different between countries. The second picture indicates that even in the same category according to the reality, the GDP amount differs a lot. It also shows that the GDP is not the only incidator to determine if the country is a developed or developing country. 
+
+
+# Part 2  : Predictive Model Building
+In the real world, there are too many factors that may affect one country's GDP, such as population, monetary policy and industry structure. As a result, we want to use the data we collect and analyze it, then try to predict the GDP by other factors, then compare the predict result with the real situation.
+At this part, we want to use the variables in the data to predict the GDP of each country,for example, food production index, foreign direct investment and unemployment rate etc. We will use four models : Random forest model, Bagging model, CART model and Boosting model to do the prediction.Then we will assess which model is better by the RMSE of each model. After deciding the model which we want to use, we will use it to do the prediction and plot the figure to compare the real situation and the predictive situation. 
+In the beginning, we have to clean to data, delete some wrong values and some information we don't need. Secondly, we will separate the data to training data and testing data, because the data we collected can't all be used to train, we have to remain some data to test, so that we can assess the performance of the model. At this step, we decide to let 80% of the data be the training set, and the remaining 20% be the testing set.
+Step description: 
+Step1. Build four models
+Step2. Model selection(compare the RMSE of every model and choose the best model)
+Step3. Conclusion
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# library the packages which we need
+library(tidyverse)
+library(ggplot2)
+library(rsample)
+library(modelr)
+library(randomForest)
+library(ggmap)
+library(caret)
+library(gbm)
+library(glmnet)
+library(kableExtra)
+library(rpart)
+library(ipred)
+library(gamlr)
+library(rpart.plot)
+library(data.table)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Cleaning the data 
+
+## Read the data
+
+
+data_2018 <- read.csv(
+  "https://raw.githubusercontent.com/JyunYuCheng/Data_Mining_Final/main/2018_data%20copy.csv")
+
+
+## Change the NA value into 0 
+data_2018[is.na(data_2018)] <- 0
+
+## select : country_name and category
+data_2018 = data_2018 %>%
+  select(-Country_Name,-category) %>% 
+  scale(center=TRUE, scale=TRUE) 
+
+## make the data frame so we can do the analysis
+data_2018 = as.data.frame(data_2018)
+
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Separate the dataset to spliting and testing data
+data_2018_split = initial_split(data_2018, prop = 0.8)
+data_2018_training = training(data_2018_split)
+data_2018_testing = testing(data_2018_split)
+
+```
+
+## Step 1 : Build the model
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+### Model category 1: Random forest model
+model_random_forest = randomForest( GDP ~ .-Acces_to_electricity 
+                                    -International_tourism_expenditures_percent_of_total_imports
+                                    -Secure_Internet_servers, 
+                                   data=data_2018_training)
+
+# use forest model to predict
+yhat_test_forest = predict(model_random_forest, data_2018_testing)
+# plot(yhat_test_forest, data_2018_testing$GDP)
+# assess the forest1 model by testing-set
+# rmse(model_random_forest, data_2018_testing)
+# plot(model_random_forest)
+
+
+
+
+
+
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+### Model category 2: Bagging model 
+model_bagging = bagging(formula = GDP ~ .-Acces_to_electricity 
+                        -International_tourism_expenditures_percent_of_total_imports
+                        -Secure_Internet_servers, 
+                        data = data_2018_training, 
+                        nbagg=150,coob=T,control = rpart.control(minsplit = 2, cp = 0))
+
+# RMSE_Bagging=rmse(model_bagging, data_2018_testing)
+# RMSE_Bagging
+
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Model category 3 : CART model
+set.seed(1)
+model_CART = rpart(GDP ~ .-Acces_to_electricity 
+                   -International_tourism_expenditures_percent_of_total_imports
+                   -Secure_Internet_servers, 
+                   data=data_2018_training)
+
+# RMSE_CART = rmse(model_CART, data_2018_testing)
+# RMSE_CART
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Model category 4 : Boosting model
+# boosting model
+set.seed(1)
+model_boosting = gbm(GDP ~ .-Acces_to_electricity 
+                     -International_tourism_expenditures_percent_of_total_imports
+                     -Secure_Internet_servers, 
+                     data=data_2018_training, 
+                     interaction.depth=4, n.trees=400, shrinkage=.05)
+
+
+
+
+
+
+```
+
+## Step2: Calculate the RMES of each model 
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# calculate the rmse of each model 
+RMSE_Random_forest = rmse(model_random_forest, data_2018_testing)
+RMSE_Bagging = rmse(model_bagging, data_2018_testing) 
+RMSE_CART = rmse(model_CART, data_2018_testing) 
+RMSE_Boosting = rmse(model_boosting, data_2018_testing) 
+
+```
+### RMSE_Random_forest
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+RMSE_Random_forest
+```
+### RMSE_Bagging
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+RMSE_Bagging
+```
+### RMSE_CART
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+RMSE_CART
+```
+### RMSE_Boosting
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+RMSE_Boosting
+```
+
+From the above numbers, we can see that Bagging model has the smallest RMSE of each models,so we decide to choose Bagging model as the best predictive model and use it to do the prediction.
+
+
+## Step3: Plot the pictures 
+Now, we want to see the relationship between GDP growth rate and GDP of each countries. Firstly, we will see the scatter plot of the original data.Then we will see the plot of the relationship between the model's prediction of the GDP and GDP growth.
+
+This is the scatter plot of Real GDP growth rate and GDP.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# scatter plot
+require(ggplot2)
+qplot(x=GDP_growth,                               
+      y=GDP,                              
+      data=data_2018,                      
+      geom="point",                         
+      main = "Scatter Plot of Countries' GDP vs GDP growth rate",  
+      xlab="GDP growth rate",                          
+      ylab="GDP", 
+      label="Country_Name",
+      color= GDP)
+# Industry_value.added_percentof_gdp
+```
+
+This is the scatter plot of the relationship between the model's prediction of the GDP and GDP growth.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+yhat = predict(model_bagging, data_2018)
+qplot(x=GDP_growth,                               
+      y=yhat,                              
+      data=data_2018,                      
+      geom="point",                         # 圖形=scatter plot
+      main = "Scatter Plot of Countries' GDP vs GDP growth rate",  
+      xlab="GDP_growth",                          
+      ylab="GDP_predict", 
+      color= yhat)
+
+```
+
+## Conclusion in Part 2
+From the above figure, we can see that the distribution of predicted value are very similar to the real values. As a result, we can say that our Bagging model has good ability of predict the GDP by the other variables. If policy maker or financial institution want to know the GDP of one country, they can consider to use our Bagging model to do the prediction and decide the government policy and investment policy.
+
+
+# Part 3 : Clustering and PCA
+At this part, we want to do the unsupervised learning. In the real world, we can see that there are developing difference between the countries. There are five criteria that can be used for determine the country's developing level: 1. Human Development Index(HDI), 2. High-income economies, 3. Development Assistance Committee, 4. IMF advanced economies, 5. Paris Club members. According to these 5 criteria,which divide the countries to 4 categories: The first one is developed country, which means that it satisfies all 5 criteria; the second one is 2 pending recognition developed country, which means that it sill need to satisfy 2 more criteria to be recognized as developed country; the third one is 1 pending recognition developed country, which means that it sill need to satisfy 1 more criteria to be recognized as developed country, so the 1 pending recognition developed country is better than 2 pending recognition developed country, and the lastest one is developing country, which means that it is still developing so that it only satisfied up to 2 criteria. At this part, we want to give the computer the unsupervised information and let the computer learn to divide the countries into 4 categories which are not defined in advance, and compare it with the original data, then we can assess the performance.
+We use K-means++ clustering and PCA to do the unsupervised learning.There are 2 steps to do it, 1. run the K-means++ and PCA, 2. assess which method is better. 
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# library the needed packages
+library(tidyverse)
+library(readr)
+library(reshape2)
+library(modelr)
+library(RCurl)
+library(mosaic)
+library(LICORS) # For K-Means++  
+library(ggplot2)
+library(ggpubr)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Cleaning the data
+
+# read the data
+country_2018_wealth <- read.csv("https://raw.githubusercontent.com/JyunYuCheng/Data_Mining_Final/main/2018_data%20copy.csv"
+                                ,stringsAsFactors=T)
+# change NA to 0 
+country_2018_wealth[is.na(country_2018_wealth)] <- 0
+
+# select: country_name 跟category 
+# BC of the category variable is not a numeric variable
+country_2018_wealth_data = country_2018_wealth %>%
+  select(-Country_Name, -category) %>% 
+  scale(center=TRUE, scale=TRUE) 
+
+# transfer the country_2018_wealth_data to data frame 
+country_2018_wealth_data = as.data.frame(country_2018_wealth_data)
+
+```
+
+## Run the PCA and Clustering 
+
+### Clustering part
+
+```{r fig.align="center", fig.height = 5, fid.width = 5, message=FALSE, warning=FALSE, echo=FALSE}
+# Clustering: K-Means++ #
+## Use K-Means++ to divide data points' color into  4 categories 
+country_clustering_wealth = kmeanspp(country_2018_wealth_data, k=4, nstart=20)
+
+country_2018_wealth$k_wealth_cluster = country_clustering_wealth$cluster
+# Build a new data frame
+country_2018_new = data.frame(country_2018_wealth_data, category = country_2018_wealth$category, 
+                      clust_wealth = country_clustering_wealth$cluster)
+
+# We had used clustering to divide the data points successfully 
+
+```
+
+#### Assess : Clustering 
+
+##### Category: Assess clustering results
+
+
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+### Assess : Clustering  
+
+#### Wealth
+
+# Assess clustering results
+# We use figure to assess the clustering results
+# Combine the data_2018_new 12 to 15 columns and 
+# Used stack to transform data available as separate columns in a data frame 
+# wine_data_clustering = data_clustering
+
+country_clustering= cbind(country_2018_new[15:16], stack(country_2018_new[1:14]))
+ggplot(country_clustering) +
+  geom_boxplot(aes(x=category, y=values)) +
+  facet_wrap(~ind, ncol=3) +
+  labs(y = "Other varibles' Values",
+       x="Real Wealth")
+# 這邊圖的下方為原始category country 的那四種
+
+```
+
+According to this figure, we can see that we may distinguish countries by Foreign_direct_investmen and GDP_growth. Labels emerged naturally from clustering.
+
+
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(country_2018_new) + 
+  geom_point(aes(x=Foreign_direct_investmen, y=GDP,
+                 col=factor(clust_wealth))) +
+  labs(wealth='Generated Cluster') 
+```
+
+By clustering, We can see that green group is concentrated in the 0 and the purple ones are on the right, and the blue group is on the bottom of the figure.
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(country_2018_new) + 
+  geom_point(aes(x=Foreign_direct_investmen, y=GDP,
+                 col=factor(category))) +
+  labs(wealth='True wealth')
+```
+
+This is the true category group of country, compare to the above figure(clustering), we can see that clustering can help us distinguish the wealth of countries.
+
+
+
+
+### PCA part
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+### PCA part
+# Use PCA to to divide data points' into categories
+
+country_PCA = prcomp(country_2018_wealth_data, rank = 14)
+country_loadings = country_PCA$rotation %>%
+  as.data.frame %>%
+  rownames_to_column('features')
+
+country_scores = country_PCA$x %>%
+  as.data.frame() %>%
+  rownames_to_column('country_code')
+
+country_2018_new = country_2018_new %>% rownames_to_column('country_code')
+
+```
+
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+country_2018_new = merge(country_2018_new, country_scores, by = 'country_code') 
+country_2018_pca = melt(country_2018_new, id.var = colnames(country_2018_new)[1:17],
+                     variable.name = 'PC')
+
+```
+
+
+
+#### Find the PC which can help us to distinguish
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(country_2018_pca) +
+  geom_boxplot(aes(x=category, y=value)) +
+  facet_wrap(~PC) +
+  labs(y = "Principal Components' Values",
+       x="True Category")
+
+```
+
+From this figure, we can see that PC1 and PC3 may have some trends, so we may use it to distinguish category of countries. Then we plot it into one figure to see their abilities of distinguish.
+
+
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo=FALSE}
+ggplot(country_2018_new) +
+  geom_point(aes(x=PC1, y=PC3, color=factor(category))) +
+  labs(y = "PC3", x="PC1",
+       color='True category')
+
+```
+
+We only can see that the developed countries usually be in the left side,but PCA still can't distinguish the category of the country successfully.
+
+
+## Conclusion in Part3
+From this part, we can see that Clustering (K-Means++) is a better way for us to distinguish the category of the country.However, although it clustering is better, it still can't distinguish the category very accurately. As a result, we may have more information to do the unsupervised learning successfully next time. But we still have some useful information that can be used for policy makers, we can find that Foreign Direct Investment can affect the country's developing level, as a result, if the Foreign Direct Investment can be higher, the country has more probabilities to become the developed country. 
+
+# Conclusion
+
+From part 2 we do above, we can see that the distribution of predicted value are very similar to the real values. As a result, we can say that our Bagging model has good ability of predict the GDP by the other variables. In part 3, we can conclude that clustering (K-Means++) is a better way for us to distinguish the category of the country. 
+
+
+# Appendix
+
+## Pictures and tables in Part 1
+
+```{r fig.align="center", message=FALSE, warning=FALSE, echo =FALSE}
+
+data = read.csv('https://raw.githubusercontent.com/JyunYuCheng/Data_Mining_Final/main/2018_data%20copy.csv')
+
+
+data %>%
+  summarize(avg_gdp = mean(GDP),
+            sd_gdp = sd(GDP),
+            q05_gdp = quantile(GDP, 0.05),
+            q95_gdp = quantile(GDP, 0.95)) %>%
+  round(1)
+
+a=ggplot(data) + 
+  geom_boxplot(aes(x=factor(category), y=GDP))
+
+b=ggplot(data, aes(area = GDP, fill=GDP, label = Country_Name)) +
+  geom_treemap() + 
+  geom_treemap_text(colour = "white", place = "centre")+ 
+  theme(legend.position="none")
+
+ggarrange(a, b, ncol = 2, nrow = 1)
+```
